@@ -1,0 +1,24 @@
+
+NR:<bytestring> a string
+i---e			a number
+d---e	a map[string]string
+l---e a []string
+
+announce
+info (1file case)
+	length // Length of the whole file. 
+	piece length //Length of a piece in Bytes
+	pieces // string of multiple 20
+	name
+
+byte strings '4:spam' - ascii
+integers i<NUMBER>e i.e i24e TO BE TRANSLATED TO INTEGERS
+list	l<bytestring><bytestring>...e i.e l4:spam5:eggsye -> {"spam", "eggsy"}
+dictionaries (maps) d<bytestringKEY><bytestringVALUE><bytestringKEY><bytestringVALUE>...e
+i.e. d5:spamy3:egg2:he3:keye -> {"spamy":"egg", "he":"key}
+
+Check type
+Read in type and return it
+til error occurs. end of buffer.
+
+ BUG? - CHECKOUT! string conv!

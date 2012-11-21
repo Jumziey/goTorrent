@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"unicode"
 	"unicode/utf8"
+	"log"
+	"strconv"
 )
-
-type itemType int
 
 const (
 	itemInteger = iota
@@ -16,8 +16,10 @@ const (
 	itemDictionary
 )
 
+type itemType int
+
 type item struct {
-	Type itemType
+	typ itemType
 	val  string
 }
 
@@ -25,8 +27,10 @@ type tlex struct {
 	data  []byte
 	pos   int
 	items []item
+	fileName string //For error messages
 }
 
+//Returns the next rune in the buffer and increment the pos
 func (t *tlex) next() rune {
 	r, size := utf8.DecodeRune(t.data[t.pos:])
 	if r == utf8.RuneError {
@@ -41,7 +45,7 @@ func (t *tlex) String() string {
 	var text string
 	var typePrefix string
 	for i := 0; i < len(t.items); i++ {
-		switch (*t).items[i].Type {
+		switch (*t).items[i].typ {
 		case itemInteger:
 			typePrefix = "int"
 		case itemBytestring:
@@ -62,7 +66,11 @@ func (t *tlex) String() string {
 	return text
 }
 
-func intFunc(t *tlex) {
+
+	
+	
+func getInt(t *tlex) item {
+	var it item
 	buf := make([]byte, 10) //max integer size
 	for i := 0; ; i++ {
 		r := t.next()
@@ -70,22 +78,76 @@ func intFunc(t *tlex) {
 		case unicode.IsDigit(r):
 			size := utf8.EncodeRune(buf[i:], r)
 			if size != 1 {
-				panic("Integer is not an INTEGER! WRONGLY ENCODED YOU BASTARD!")
+				log.Fatalln(t.fileName, ": Illegal character found while parsing an integer at pos: ", t.pos);
 			}
 		case r == 'e' && len(buf) != 0:
-			var i item
-			i.Type = itemInteger
-			i.val = string(buf)
-			t.items = append(t.items, i)
-			goto done
+			it.typ = itemInteger
+			it.val = string(buf)
+			return it
 		default:
-			panic("SOMETHING WENT HAYWIRE IN INTFUNC!")
+			log.Fatalln(t.fileName, ": Out of bonds parsing an integer at pos: ", t.pos)
+		}
+	}
+	return it
+}
+
+func lexInt(t* tlex) {
+	it := getInt(t)
+	t.items = append(t.items, it)
+}
+
+//For a temporary hack
+func firstNil(b []byte) int {
+	var i int
+	for i = len(b) - 1; ; i-- {
+		if b[i] != 0 {
+			break
+		}
+	}
+	return i + 1
+}
+
+func getBytestring(t *tlex) string {
+	//We know the first number is thrown away but we need it
+	//We also know a number is only one byte so this is ok
+	t.pos = t.pos - 1
+	
+	numBuf := make([]byte, 10)
+	for i := 0;;i++{
+		r := t.next()
+		switch r {
+			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+				numBuf[i] = byte(r) //For numbers: ascii bytes and runes the same
+			case ':':
+				goto done;
+			default:
+				log.Fatalln(t.fileName, ": Out of bonds parsing a bytestring at pos: ", t.pos)
 		}
 	}
 done:
+	n := firstNil(numBuf) //Temporary hack
+	woop := string(numBuf[:n])
+	fmt.Println(numBuf[:n])
+	size, err := strconv.Atoi(woop)
+	if err != nil {
+		log.Fatalln(t.fileName, ": Somthing is haywire while parsing bytestring at ", t.pos, " ERROR: ", err)
+	}
+	buf := make([]byte, size)
+	for i:=0; i<size;  {
+		r := t.next()
+		r_size := utf8.EncodeRune(buf[i:], r)
+		i = i+r_size 
+	}
+	return string(buf)
 }
 
-func bytestringFunc(t *tlex) {
+func lexBytestring(t* tlex) {
+	var it item
+	bytestring := getBytestring(t)
+	it.typ = itemBytestring
+	it.val = bytestring
+	t.items = append(t.items, it)
+}
 	
 
 func main() {
@@ -93,8 +155,9 @@ func main() {
 
 	data, err := ioutil.ReadFile("bytestring.torrent")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+	t.fileName = "NeedsToBeImplemented.torrent"
 	t.data = data
 	for {
 		r := t.next()
@@ -103,13 +166,12 @@ func main() {
 			fmt.Println("WOOP! Dict not implemented")
 			goto done
 		case 'i':
-			intFunc(&t)
+			lexInt(&t)
 		case 'l':
 			fmt.Println("Woop! list not implemented")
 			goto done
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			fmt.Println("Woop! Bytestring not implemented")
-			goto done
+			lexBytestring(&t)
 		case utf8.RuneError:
 			fmt.Println("Now its all done!")
 			goto done
@@ -118,30 +180,6 @@ func main() {
 		}
 	}
 done:
+
 	fmt.Println(&t)
-
-	/*
-		NR:<bytestring> a string
-		i---e			a number
-		d---e	a map[string]string
-		l---e a []string
-
-		announce
-		info (1file case)
-			length // Length of the whole file. 
-			piece length //Length of a piece in Bytes
-			pieces // string of multiple 20
-			name
-
-		byte strings '4:spam' - ascii
-		integers i<NUMBER>e i.e i24e TO BE TRANSLATED TO INTEGERS
-		list	l<bytestring><bytestring>...e i.e l4:spam5:eggsye -> {"spam", "eggsy"}
-		dictionaries (maps) d<bytestringKEY><bytestringVALUE><bytestringKEY><bytestringVALUE>...e
-		i.e. d5:spamy3:egg2:he3:keye -> {"spamy":"egg", "he":"key}
-
-		Check type
-		Read in type and return it
-		til error occurs. end of buffer.
-
-	*/
 }

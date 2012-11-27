@@ -21,4 +21,6 @@ Check type
 Read in type and return it
 til error occurs. end of buffer.
 
- BUG? - CHECKOUT! string conv!
+ BUG? - CHECKOUT! string conv! report it asap
+
+se if string(runes) works!

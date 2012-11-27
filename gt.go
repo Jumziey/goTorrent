@@ -20,7 +20,7 @@ type itemType int
 
 type item struct {
 	typ itemType
-	val  string
+	val  interface{}
 }
 
 type tlex struct {
@@ -57,18 +57,16 @@ func (t *tlex) String() string {
 		default:
 			typePrefix = "type_unknowned"
 		}
+		itVal := t.items[i].val.(string)
 		if i != len(t.items)-1 {
-			text = text + typePrefix + ": " + t.items[i].val + "\n"
+			text = text + typePrefix + ": " + itVal + "\n"
 		} else {
-			text = text + typePrefix + ": " + t.items[i].val
+			text = text + typePrefix + ": " + itVal
 		}
 	}
 	return text
 }
 
-
-	
-	
 func getInt(t *tlex) item {
 	var it item
 	buf := make([]byte, 10) //max integer size
@@ -96,17 +94,6 @@ func lexInt(t* tlex) {
 	t.items = append(t.items, it)
 }
 
-//For a temporary hack
-func firstNil(b []byte) int {
-	var i int
-	for i = len(b) - 1; ; i-- {
-		if b[i] != 0 {
-			break
-		}
-	}
-	return i + 1
-}
-
 func getBytestring(t *tlex) string {
 	//We know the first number is thrown away but we need it
 	//We also know a number is only one byte so this is ok
@@ -125,18 +112,20 @@ func getBytestring(t *tlex) string {
 		}
 	}
 done:
-	n := firstNil(numBuf) //Temporary hack
+	n := firstNil(numBuf) //Helper func, hack for string conversion baddieness. 
 	woop := string(numBuf[:n])
-	fmt.Println(numBuf[:n])
 	size, err := strconv.Atoi(woop)
 	if err != nil {
 		log.Fatalln(t.fileName, ": Somthing is haywire while parsing bytestring at ", t.pos, " ERROR: ", err)
 	}
 	buf := make([]byte, size)
-	for i:=0; i<size;  {
+	for i,j := 0,0; j<size;j++  {
 		r := t.next()
+		if n:=utf8.RuneLen(r); n>1 {
+			buf = incByteSlice(buf, n) //Helper func
+		}
 		r_size := utf8.EncodeRune(buf[i:], r)
-		i = i+r_size 
+		i = i+r_size
 	}
 	return string(buf)
 }
@@ -166,6 +155,7 @@ func main() {
 			fmt.Println("WOOP! Dict not implemented")
 			goto done
 		case 'i':
+			fmt.Println("OH MY")
 			lexInt(&t)
 		case 'l':
 			fmt.Println("Woop! list not implemented")
@@ -175,6 +165,7 @@ func main() {
 		case utf8.RuneError:
 			fmt.Println("Now its all done!")
 			goto done
+		case '\n': //ignoring newline
 		default:
 			fmt.Println("We got something extra: ", r)
 		}

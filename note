@@ -17,10 +17,32 @@ list	l<bytestring><bytestring>...e i.e l4:spam5:eggsye -> {"spam", "eggsy"}
 dictionaries (maps) d<bytestringKEY><bytestringVALUE><bytestringKEY><bytestringVALUE>...e
 i.e. d5:spamy3:egg2:he3:keye -> {"spamy":"egg", "he":"key}
 
-Check type
-Read in type and return it
-til error occurs. end of buffer.
 
  BUG? - CHECKOUT! string conv! report it asap
+ 
+func listParse(t *tlex) []string {
+	var str []string
+	for s := listLexParse(t); s != nil; s = listLexParse(t) {
+		str = append(str, s...)
+	}
+	return str
 
-se if string(runes) works!
+}
+
+func listLexParse(t *tlex) []string {
+	for r:=t.next(); r != 'e'; r=t.next() {
+		fmt.Println(string(r))
+		switch r {
+			case 'l':
+				return listParse(t)
+			case 'i':
+				return []string{intParse(t)}
+			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+				return []string{stringParse(t)}
+			default:
+				log.Fatalln("Out of bonds in listLexParse")
+		}
+	}
+	//We're done and we return ""
+	return nil
+}

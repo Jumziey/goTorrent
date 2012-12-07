@@ -11,16 +11,24 @@ import (
 
 const (
 	itemInteger = iota
-	itemBytestring
+	itemString
 	itemList
 	itemDictionary
+	itemError
+	itemNil
 )
 
 type itemType int
 
 type item struct {
 	typ itemType
+	//int.(string), string.(string), list.(listItem), dict.(dictItem) 
 	val  interface{}
+}
+
+type listItem struct {
+	it item
+	next *listItem
 }
 
 type tlex struct {
@@ -40,24 +48,40 @@ func (t *tlex) next() rune {
 	return r
 }
 
-//Debug print for fmt.Print
+//Debug print for fmt.Print#################
+func printList(it *item) string {
+	var il* listItem
+	var val string
+	
+	*il = it.val.(listItem)
+	val = il.it.val.(string)
+	for il = il.next; il != nil; {
+		val = val+" "+il.it.val.(string)
+	}
+	return val
+}
+	
 func (t *tlex) String() string {
-	var text string
-	var typePrefix string
+	var text, typePrefix, itVal string
+	
 	for i := 0; i < len(t.items); i++ {
 		switch (*t).items[i].typ {
 		case itemInteger:
 			typePrefix = "int"
-		case itemBytestring:
+			itVal = t.items[i].val.(string)
+		case itemString:
 			typePrefix = "bytestring"
+			itVal = t.items[i].val.(string)
 		case itemList:
 			typePrefix = "list"
-		case itemDictionary:
-			typePrefix = "dic"
+			itVal = printList(&t.items[i])
+	//	case itemDictionary:
+	//		typePrefix = "dic"
 		default:
 			typePrefix = "type_unknowned"
+			itVal = "WHATTA?"
 		}
-		itVal := t.items[i].val.(string)
+		
 		if i != len(t.items)-1 {
 			text = text + typePrefix + ": " + itVal + "\n"
 		} else {
@@ -67,8 +91,9 @@ func (t *tlex) String() string {
 	return text
 }
 
-func getInt(t *tlex) item {
-	var it item
+//#################################
+
+func getInt(t *tlex) string {
 	buf := make([]byte, 10) //max integer size
 	for i := 0; ; i++ {
 		r := t.next()
@@ -79,22 +104,20 @@ func getInt(t *tlex) item {
 				log.Fatalln(t.fileName, ": Illegal character found while parsing an integer at pos: ", t.pos);
 			}
 		case r == 'e' && len(buf) != 0:
-			it.typ = itemInteger
-			it.val = string(buf)
-			return it
+			 return string(buf)
 		default:
 			log.Fatalln(t.fileName, ": Out of bonds parsing an integer at pos: ", t.pos)
 		}
 	}
-	return it
+	return "" //Never reach
 }
 
 func lexInt(t* tlex) {
-	it := getInt(t)
-	t.items = append(t.items, it)
+	val := getInt(t)
+	t.items = append(t.items, item{itemInteger, val})
 }
 
-func getBytestring(t *tlex) string {
+func getString(t *tlex) string {
 	//We know the first number is thrown away but we need it
 	//We also know a number is only one byte so this is ok
 	t.pos = t.pos - 1
@@ -130,19 +153,59 @@ done:
 	return string(buf)
 }
 
-func lexBytestring(t* tlex) {
+func lexString(t* tlex) {
 	var it item
-	bytestring := getBytestring(t)
-	it.typ = itemBytestring
-	it.val = bytestring
+	str := getString(t)
+	it.typ = itemString
+	it.val = str
 	t.items = append(t.items, it)
 }
+
+func listParse (t* tlex) (string, itemType) {
+	r := t.next()
+	switch r {
+	case 'i':
+		return string(getInt(t)), itemInteger
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		return getString(t), itemString
+	case 'e':
+		return "", itemError
+	default:
+		log.Fatalln(t.fileName, ": Somthing is haywire while parsing list at ", t.pos)
+	}
+	return "", itemError //Never reach
+}
+
+func getList(t *tlex) listItem {
+	var itCur, itPrev *listItem
+	var itFirst listItem
 	
+	val, typ := listParse(t)
+	itFirst.it = item{typ, val}
+	itPrev = &itFirst
+	for val, typ := listParse(t); typ != itemNil;{
+		fmt.Println(typ)
+		itCur = new(listItem)
+		itCur.it = item{typ, val}
+		itPrev.next = itCur
+		itPrev = itCur
+	}
+	return itFirst
+	
+}
+
+func lexList(t *tlex) {
+	var it item
+	li := getList(t)
+	it.typ = itemList
+	it.val = li
+	t.items = append(t.items, it)
+}
 
 func main() {
 	var t tlex
 
-	data, err := ioutil.ReadFile("bytestring.torrent")
+	data, err := ioutil.ReadFile("list.torrent")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -152,16 +215,15 @@ func main() {
 		r := t.next()
 		switch r {
 		case 'd':
-			fmt.Println("WOOP! Dict not implemented")
+			fmt.Println("Woop! dict is not implemented")
 			goto done
 		case 'i':
-			fmt.Println("OH MY")
 			lexInt(&t)
 		case 'l':
-			fmt.Println("Woop! list not implemented")
+			lexList(&t)
 			goto done
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			lexBytestring(&t)
+			lexString(&t)
 		case utf8.RuneError:
 			fmt.Println("Now its all done!")
 			goto done

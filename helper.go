@@ -22,3 +22,12 @@ func incByteSlice(b []byte, n int) []byte {
 	}
 	return buf
 }
+
+func stringSlicetoString(s []string) string {
+	var str string
+	for i:=0; i<len(s); i++ {
+		str = str+" "
+		str = str+s[i]
+	}
+	return str
+}

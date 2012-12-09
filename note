@@ -1,7 +1,9 @@
-
 <number of bytes(int)>:<string> a string
 i---e	a number
 d---e	a dict
 l---e a list
 
 bytestrings has the number of bytes in size, not characters (for utf8 encoding its important)
+
+I'm gonna rewrite the parse code to assume that every torrentfile is just one dictionary were all keys are strings.
+I think this is the case (from parsing a number of torrentfiles) and it will greatly simplify the code. 

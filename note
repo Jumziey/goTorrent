@@ -5,3 +5,4 @@ d---e	a dict
 l---e a list
 
 bytestrings has the number of bytes in size, not characters (for utf8 encoding its important)
+

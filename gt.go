@@ -16,5 +16,9 @@ func main() {
 	if info == nil {
 		log.Fatalln("Found no info dict in torrent file")
 	}
-	fmt.Println(info)
+	sList, err := bittor.GetStringListFromDict("announce-list", s)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println(sList)
 }

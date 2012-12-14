@@ -1,7 +1,8 @@
-
 <number of bytes(int)>:<string> a string
 i---e	a number
 d---e	a dict
 l---e a list
 
 bytestrings has the number of bytes in size, not characters (for utf8 encoding its important)
+
+Crap, have to do a seperate read of the torrent file for the info value... It has to be sha1:ed in its bencoded form in the correct order... I.e bencoding and hasing an info map is not good enough since map keys are not ordered. Lets just do a function call in bittor that does that for us if we give it an open file desc... And lets change all the functions in bittor to give an open file desc.

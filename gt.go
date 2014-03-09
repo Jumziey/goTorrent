@@ -89,29 +89,31 @@ func main() {
 
 	fmt.Println("############start############")
 	fmt.Println()
-	torrentFile := "hunter.torrent"
-
-	f, err := os.Open(torrentFile)
+	tName := "crunch.torrent"
+	
+	tFile, err := os.Open(tName)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer f.Close()
+	defer tFile.Close()
+	
 
-	src, err := bittor.GetMainDict(f)
+	src, err := bittor.GetMainDict(tFile,tName)
 	if err != nil {
-		log.Fatalln("Error decoding ", torrentFile, ":", err)
+		log.Fatalln("Error decoding ", tFile, ":", err)
 	}
-	info := bittor.GetDict(src, "info")
+	info := bittor.GetInfoDict(src)
 	if info == nil {
 		log.Fatalln("Found no info dict in torrent file")
 	}
 
-	//Some reading must have been done in bittor.GetMainDict()
-	f.Seek(0, 0)
+	/*
+	tFile.Seek(0, 0)
 	info_hash, err := bittor.InfoHash(f)
 	if err != nil {
 		log.Fatalln(err)
 	}
+	*/
 
 	aUrl, err := getAnnounce(src);
 	if err != nil {

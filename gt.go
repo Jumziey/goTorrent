@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"hash"
 )
@@ -84,60 +83,32 @@ func scrape(aUrl *url.URL,info_hash hash.Hash) ([]byte,error) {
 	return scrape_body, nil
 }
 
-func main() {
-	torrent := torrentInfo{};
 
-	fmt.Println("############start############")
-	fmt.Println()
+
+func main() {
 	tName := "crunch.torrent"
+	fmt.Println("############start############")
 	
-	tFile, err := os.Open(tName)
+	tData,err := ioutil.ReadFile(tName)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer tFile.Close()
 	
-
-	src, err := bittor.GetMainDict(tFile,tName)
+	
+	src, err := bittor.GetMainDict(tData)
 	if err != nil {
-		log.Fatalln("Error decoding ", tFile, ":", err)
+		log.Fatalln("Error decoding ", tName, ":", err)
 	}
-	info := bittor.GetInfoDict(src)
-	if info == nil {
+	info, err := bittor.GetInfoDict(src)
+	if err != nil {
 		log.Fatalln("Found no info dict in torrent file")
 	}
-
-	/*
-	tFile.Seek(0, 0)
-	info_hash, err := bittor.InfoHash(f)
+	
+	tHash, err := bittor.GetInfoHash(tData)
 	if err != nil {
-		log.Fatalln(err)
-	}
-	*/
-
-	aUrl, err := getAnnounce(src);
-	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Problems with hashing the info value of torrent: ", err)
 	}
 	
-	scrape_body, err := scrape(aUrl, info_hash);
-	if err != nil {
-		log.Fatalln(err)
-	}
-	
-	b_data, err := bittor.GetDictFromByte(scrape_body);
-	if err != nil {
-		log.Fatalln(err)
-	}
-	
-	actual_torrent := bittor.GetDict(b_data, "files")
-	hashy := bittor.GetDict(actual_torrent, string(info_hash.Sum(nil)))
-	
-	torrent.id = info_hash;
-	torrent.complete = hashy["complete"].(int)
-	torrent.incomplete = hashy["incomplete"].(int)
-	torrent.downloaded = hashy["downloaded"].(int)
-
-	fmt.Println(torrent.complete);
+	fmt.Printf("% x\n", tHash.Sum(nil))
+	fmt.Println(info["piece length"])
 }
-

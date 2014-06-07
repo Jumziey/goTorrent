@@ -171,13 +171,15 @@ func main() {
 	v.Set("event", event)
 	
 	aUrl.RawQuery = v.Encode()
-	fmt.Print("Sending:")
+	fmt.Println()
+	fmt.Println("Sending:")
 	fmt.Println("\t"+aUrl.String())
 	aResp, err := http.Get(aUrl.String())
 	if err != nil {
 		log.Fatalln("Error announcing to tracker: ", err)
 	}
 	text,_ := ioutil.ReadAll(aResp.Body)
+	fmt.Println()
 	fmt.Println(string(text))
 }
 

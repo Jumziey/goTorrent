@@ -1,7 +1,11 @@
+#Notes
+##Tracker for testing
+Opentracker only deals with the compact mode. Using xbt tracker while
+developing for the mean time then.
+
+##Encoding notes
 <number of bytes(int)>:<string> a string
 i---e	a number
 d---e	a dict
 l---e a list
-
 bytestrings has the number of bytes in size, not characters (for utf8 encoding its important)
-

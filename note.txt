@@ -1,2 +1,0 @@
-Opentracker only deals with the compact mode. Using xbt tracker while 
-developing for the mean time then. 

@@ -1,0 +1,8 @@
+version: 2
+
+service:
+  tracker:
+    image: henkel/bittorrent-tracker
+    ports:
+     - "9100:8000"
+  
